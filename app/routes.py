@@ -44,6 +44,9 @@ class TextForm(FlaskForm):
 def formular():
     form=TextForm()
     if form.validate_on_submit():
+        new_parent=Parent(name=form.field1.data)
+        db.add(new_parent)
+        db.commit()
         return 'Success'
     else:
         return render_template('formular.html',form=form)
