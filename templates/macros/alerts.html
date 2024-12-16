@@ -1,0 +1,24 @@
+{% macro no_users_available() %}
+    <div class="alert alert-warning">
+        No parents available to select for deletion.
+    </div>
+{% endmacro %}
+
+{% macro form_errors(errors) %}
+    <div class="alert alert-danger">
+        {% for field, error_list in errors.items() %}
+            {% for error in error_list %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+
+{% macro no_users_available() %}
+    <div class="alert alert-warning">
+        No parents available to select for deletion.
+    </div>
+{% endmacro %}
+
+
+{% endmacro %}
