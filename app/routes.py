@@ -1,7 +1,7 @@
 # Standard Library imports
 
 # Core Flask imports
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 
 # Third-party imports
 
@@ -26,36 +26,73 @@ def before_request():
     db()
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, PasswordField, validators
+from wtforms import StringField, BooleanField, PasswordField, validators, SelectMultipleField
+from flask_wtf.file import FileField
+from app.models import Parent
 
 class TextForm(FlaskForm):
-    field1=StringField('Field1',[
+    field1 = StringField('Field1', [
         validators.DataRequired(),
         validators.Length(max=30),
-        validators.Regexp(r'^[a-zA-Z0-9 ]*$',message="blablabla")
+        validators.Regexp(r'^[a-zA-Z0-9 ]*$', message="Only ASCII characters without punctuation are allowed.")
     ])
-    field2=StringField('Field2',[
+    field2 = StringField('Field2', [
         validators.DataRequired(),
         validators.Length(max=30),
-        validators.Regexp(r'^[a-zA-Z0-9 ]*$',message="blablabla")
+        validators.Regexp(r'^[a-zA-Z0-9 ]*$', message="Only ASCII characters without punctuation are allowed.")
     ])
-@bp.route('/formular',methods=['POST','GET'])
 
+class DeleteUsersForm(FlaskForm):
+    users = SelectMultipleField('Select Users to Delete', coerce=int)
+
+@bp.route('/formular', methods=['GET', 'POST'])
 def formular():
-    form=TextForm()
-    if form.validate_on_submit():
-        new_parent=Parent(name=form.field1.data)
+    form = TextForm()
+    if form.validate_on_submit(): 
+        new_parent = Parent(name=form.field1.data)
         db.add(new_parent)
         db.commit()
         return 'Success'
-    else:
-        return render_template('formular.html',form=form)
+    return render_template('formular.html', form=form)
+
+@bp.route('/delete_parents', methods=['GET', 'POST'])
+def delete_parents():
+    """
+    Renders a form to select and delete a parent by ID and processes the deletion request.
+    """
+    parents = Parent.query.all()  # Get all parents
+ 
+    if request.method == 'POST':
+        parent_id = request.form.get('parent_id', type=int)  # Ensure parent_id is integer
+        if not parent_id:
+            return {"error": "Parent ID is required"}, 400
+ 
+        parent = Parent.query.get(parent_id)
+        if not parent:
+            return {"error": "Parent not found"}, 404
+ 
+        try:
+            db.delete(parent)
+            db.commit()
+            return {"message": "Parent deleted successfully"}, 200
+        except Exception as e:
+            db.rollback()
+            return {"error": "An error occurred while deleting the parent", "details": str(e)}, 500
+ 
+    return render_template('delete_parents.html', parents=parents)
+
+@bp.route('/delete/<int:item_id>', methods=['GET','DELETE'])
+def delete_item(item_id):
+    item = db.query.get(item_id)  # Nahraďte správným modelem
+    if not item:
+        return 'Item not found', 404
+    db.session.delete(item)
+    db.session.commit()
+    return 'Item deleted'
 
 @bp.teardown_app_request
 def shutdown_session(response_or_exc):
     db.remove()
-
-
 
 @login_manager.user_loader
 def load_user(user_id):
